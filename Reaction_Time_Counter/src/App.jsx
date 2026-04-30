@@ -1,19 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const App = () => {
   const [status, setStatus] = useState("idle");
   const [startTime, setStartTime] = useState(null);
   const [reactionTime, setReactionTime] = useState(null);
   const [bestTime, setBestTime] = useState(null);
-
-  function startGame() {
-    setStatus("waiting");
-    const delay = Math.random() * 3000 + 1000;
-    setTimeout(() => {
-      setStatus("ready");
-      setStartTime(Date.now());
-    }, delay);
-  }
+  const [count, setCount] = useState(3);
 
   function clickedTooEarly() {
     setStatus("idle");
@@ -23,7 +15,7 @@ const App = () => {
   function handleClick() {
     const timeTaken = Date.now() - startTime;
     setReactionTime(timeTaken);
-    if (!bestTime || timeTaken < bestTime) setBestTime(timeTaken); // ← bonus!
+    if (!bestTime || timeTaken < bestTime) setBestTime(timeTaken);
     setStatus("clicked");
   }
 
@@ -41,6 +33,30 @@ const App = () => {
     return                         { label: "TOO SLOW",   color: "text-red-400",    emoji: "🐢" };
   }
 
+  useEffect(() => {
+    if (status !== "countdown") return;
+
+    setCount(3);
+
+    const timer = setInterval(() => {
+      setCount((prev) => {
+        if (prev === 1) {
+          clearInterval(timer);
+          setStatus("waiting");
+          const delay = Math.random() * 3000 + 1000;
+          setTimeout(() => {
+            setStatus("ready");
+            setStartTime(Date.now());
+          }, delay);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000); // ✅ fixed — 1 second delay
+
+    return () => clearInterval(timer);
+  }, [status]);
+
   return (
     <div className="min-h-screen bg-[#080808] flex items-center justify-center font-mono">
 
@@ -48,9 +64,15 @@ const App = () => {
       {status === "idle" && (
         <div className="flex flex-col items-center gap-8 text-center px-6">
           <div>
-            <h1 className="text-8xl font-black text-white tracking-widest">REFLEX</h1>
-            <h2 className="text-8xl font-black text-transparent tracking-widest"
-              style={{ WebkitTextStroke: "1px #333" }}>TEST</h2>
+            <h1 className="text-8xl font-black text-white tracking-widest">
+              REFLEX
+            </h1>
+            <h2
+              className="text-8xl font-black text-transparent tracking-widest"
+              style={{ WebkitTextStroke: "1px #333" }}
+            >
+              TEST
+            </h2>
           </div>
           <p className="text-zinc-600 text-xs tracking-widest uppercase">
             How fast are your reflexes?
@@ -72,18 +94,34 @@ const App = () => {
       {/* ── COUNTDOWN SCREEN ── */}
       {status === "countdown" && (
         <div className="flex flex-col items-center gap-8 text-center px-6">
-          <div className="w-40 h-40 rounded-full border border-zinc-800 flex items-center justify-center">
-            <span className="text-7xl font-black text-white">GO?</span>
+          {/* big animated number */}
+          <div className="relative flex items-center justify-center">
+            <div className="absolute w-52 h-52 rounded-full border border-zinc-800 animate-ping opacity-20"/>
+            <div className="w-44 h-44 rounded-full border border-zinc-700 flex items-center justify-center">
+              <span
+                key={count}
+                className="text-8xl font-black text-white"
+                style={{ animation: "popIn 0.3s ease forwards" }}
+              >
+                {count}
+              </span>
+            </div>
           </div>
+
+          {/* label changes based on count */}
           <p className="text-zinc-500 text-xs tracking-widest uppercase">
-            Whenever you feel ready
+            {count === 3 && "get ready..."}
+            {count === 2 && "almost..."}
+            {count === 1 && "here it comes!"}
+            {count === 0 && "GO!"}
           </p>
-          <button
-            onClick={startGame}
-            className="px-10 py-4 border border-zinc-700 text-white text-xl font-black tracking-widest rounded-full hover:border-white hover:bg-white hover:text-black active:scale-95 transition-all"
-          >
-            I'M READY
-          </button>
+
+          {/* animated dots */}
+          <div className="flex gap-2">
+            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${count <= 2 ? "bg-white" : "bg-zinc-700"}`}/>
+            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${count <= 1 ? "bg-white" : "bg-zinc-700"}`}/>
+            <div className={`w-2 h-2 rounded-full transition-all duration-300 ${count === 0 ? "bg-white" : "bg-zinc-700"}`}/>
+          </div>
         </div>
       )}
 
@@ -96,8 +134,12 @@ const App = () => {
           <div className="w-32 h-32 rounded-full border-2 border-red-500/40 flex items-center justify-center">
             <div className="w-16 h-16 rounded-full bg-red-500/30 animate-pulse"/>
           </div>
-          <h1 className="text-5xl font-black text-red-400 tracking-widest">WAIT...</h1>
-          <p className="text-xs text-red-800 tracking-widest uppercase">Don't click yet!</p>
+          <h1 className="text-5xl font-black text-red-400 tracking-widest">
+            WAIT...
+          </h1>
+          <p className="text-xs text-red-800 tracking-widest uppercase">
+            Don't click yet!
+          </p>
         </div>
       )}
 
@@ -113,8 +155,12 @@ const App = () => {
               <div className="w-16 h-16 rounded-full bg-green-400"/>
             </div>
           </div>
-          <h1 className="text-6xl font-black text-green-400 tracking-widest">CLICK!</h1>
-          <p className="text-xs text-green-700 tracking-widest uppercase">Now! Now! Now!</p>
+          <h1 className="text-6xl font-black text-green-400 tracking-widest">
+            CLICK!
+          </h1>
+          <p className="text-xs text-green-700 tracking-widest uppercase">
+            Now! Now! Now!
+          </p>
         </div>
       )}
 
@@ -131,6 +177,11 @@ const App = () => {
           {bestTime === reactionTime && (
             <div className="text-xs text-yellow-500 border border-yellow-900 rounded-full px-4 py-1.5">
               🏆 new best!
+            </div>
+          )}
+          {bestTime && bestTime !== reactionTime && (
+            <div className="text-xs text-zinc-600 border border-zinc-800 rounded-full px-4 py-1.5">
+              best — {bestTime}ms
             </div>
           )}
           <button
